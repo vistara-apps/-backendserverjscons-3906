@@ -4,7 +4,9 @@ import Header from './Header';
 import KPICards from './KPICards';
 import SalesChart from './SalesChart';
 import TransactionsTable from './TransactionsTable';
-import { RefreshCw } from 'lucide-react';
+import PortfolioView from './PortfolioView';
+import MarketInsights from './MarketInsights';
+import { RefreshCw, BarChart3, PieChart, Brain, Home } from 'lucide-react';
 
 const Dashboard = ({ user, onLogout }) => {
   const [kpis, setKpis] = useState(null);
@@ -12,18 +14,19 @@ const Dashboard = ({ user, onLogout }) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   const fetchData = async () => {
     try {
       const [kpisRes, salesRes, transactionsRes] = await Promise.all([
-        axios.get('http://localhost:5000/kpis'),
-        axios.get('http://localhost:5000/sales'),
-        axios.get('http://localhost:5000/transactions'),
+        axios.get('http://localhost:5000/api/kpis'),
+        axios.get('http://localhost:5000/api/sales'),
+        axios.get('http://localhost:5000/api/transactions'),
       ]);
 
       setKpis(kpisRes.data);
       setSalesData(salesRes.data);
-      setTransactions(transactionsRes.data);
+      setTransactions(transactionsRes.data.transactions || transactionsRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -49,6 +52,50 @@ const Dashboard = ({ user, onLogout }) => {
     );
   }
 
+  const tabs = [
+    { id: 'overview', name: 'Overview', icon: Home },
+    { id: 'portfolio', name: 'Portfolio', icon: PieChart },
+    { id: 'analytics', name: 'Analytics', icon: BarChart3 },
+    { id: 'insights', name: 'AI Insights', icon: Brain },
+  ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'portfolio':
+        return <PortfolioView />;
+      case 'analytics':
+        return (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <SalesChart data={salesData} />
+              </div>
+              <div className="lg:col-span-1">
+                <TransactionsTable transactions={transactions} />
+              </div>
+            </div>
+          </div>
+        );
+      case 'insights':
+        return <MarketInsights />;
+      default:
+        return (
+          <div className="space-y-8">
+            {kpis && <KPICards kpis={kpis} />}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <SalesChart data={salesData} />
+              </div>
+              <div className="lg:col-span-1">
+                <TransactionsTable transactions={transactions} />
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header user={user} onLogout={onLogout} />
@@ -58,7 +105,7 @@ const Dashboard = ({ user, onLogout }) => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                Welcome back, {user.username}!
+                Welcome back, {user.firstName || user.username}!
               </h1>
               <p className="text-gray-600">Here's what's happening with your investments today.</p>
             </div>
@@ -72,18 +119,33 @@ const Dashboard = ({ user, onLogout }) => {
             </button>
           </div>
 
-          <div className="space-y-8">
-            {kpis && <KPICards kpis={kpis} />}
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                <SalesChart data={salesData} />
-              </div>
-              <div className="lg:col-span-1">
-                <TransactionsTable transactions={transactions} />
-              </div>
+          {/* Navigation Tabs */}
+          <div className="mb-8">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        activeTab === tab.id
+                          ? 'border-primary-500 text-primary-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 mr-2" />
+                      {tab.name}
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
           </div>
+
+          {/* Content */}
+          {renderContent()}
         </div>
       </main>
     </div>
