@@ -15,13 +15,13 @@ const LoginScreen = ({ onLogin }) => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:5000/login', {
+      const response = await axios.post('http://localhost:5000/api/login', {
         username,
         password,
       });
 
       if (response.data.success) {
-        onLogin(response.data);
+        onLogin(response.data.user);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
